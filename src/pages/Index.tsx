@@ -4,9 +4,11 @@ import { Features } from "@/components/Features";
 import { Lessons } from "@/components/Lessons";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -31,7 +33,9 @@ const Index = () => {
           <Features />
         </>
       ) : (
-        <Lessons />
+        <div className="pt-16">
+          <Lessons />
+        </div>
       )}
     </main>
   );
