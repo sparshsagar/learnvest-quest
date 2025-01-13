@@ -1,8 +1,10 @@
 import { Button } from "./ui/button";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 export const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -21,7 +23,7 @@ export const Header = () => {
           <nav className="hidden md:flex items-center space-x-8">
             <a href="#features" className="text-sm font-medium hover:text-primary transition-colors">Features</a>
             <a href="#how-it-works" className="text-sm font-medium hover:text-primary transition-colors">How it works</a>
-            <Button variant="ghost" className="text-sm">Sign in</Button>
+            <Button variant="ghost" className="text-sm" onClick={() => navigate("/auth")}>Sign in</Button>
             <Button className="glass-button">Get Started</Button>
           </nav>
         </div>
