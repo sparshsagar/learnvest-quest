@@ -4,6 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { UserBadges } from "./UserBadges";
 
 type Lesson = {
   id: string;
@@ -32,7 +33,6 @@ export const Lessons = () => {
   const { data: lessons = [], isLoading } = useQuery({
     queryKey: ["lessons", userId],
     queryFn: async () => {
-      // First get all lessons
       const { data: allLessons, error: lessonsError } = await supabase
         .from("lessons")
         .select("id, title, description")
@@ -40,7 +40,6 @@ export const Lessons = () => {
 
       if (lessonsError) throw lessonsError;
 
-      // Then get progress for the current user if they're logged in
       if (userId) {
         const { data: progress, error: progressError } = await supabase
           .from("lessons_progress")
@@ -49,7 +48,6 @@ export const Lessons = () => {
 
         if (progressError) throw progressError;
 
-        // Merge the progress data with the lessons
         return allLessons.map((lesson: Lesson) => {
           const lessonProgress = progress?.find(p => p.lesson_id === lesson.id);
           return {
@@ -75,25 +73,32 @@ export const Lessons = () => {
 
   return (
     <div className="container mx-auto py-8">
-      <h2 className="text-3xl font-bold mb-6">Investment Lessons</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {lessons.map((lesson) => (
-          <Card key={lesson.id} className="hover:shadow-lg transition-shadow duration-300">
-            <CardHeader>
-              <CardTitle>{lesson.title}</CardTitle>
-              <CardDescription>{lesson.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>Progress</span>
-                  <span>{lesson.progress || 0}%</span>
-                </div>
-                <Progress value={lesson.progress || 0} className="h-2" />
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <h2 className="text-3xl font-bold mb-6">Investment Lessons</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {lessons.map((lesson) => (
+              <Card key={lesson.id} className="hover:shadow-lg transition-shadow duration-300">
+                <CardHeader>
+                  <CardTitle>{lesson.title}</CardTitle>
+                  <CardDescription>{lesson.description}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span>Progress</span>
+                      <span>{lesson.progress || 0}%</span>
+                    </div>
+                    <Progress value={lesson.progress || 0} className="h-2" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+        <div>
+          {userId && <UserBadges userId={userId} />}
+        </div>
       </div>
     </div>
   );
