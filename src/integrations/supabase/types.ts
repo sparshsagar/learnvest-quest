@@ -60,6 +60,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "lessons_progress_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "lessons_progress_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false

@@ -32,21 +32,39 @@ export const Lessons = () => {
   const { data: lessons = [], isLoading } = useQuery({
     queryKey: ["lessons", userId],
     queryFn: async () => {
-      const { data: lessons, error } = await supabase
+      // First get all lessons
+      const { data: allLessons, error: lessonsError } = await supabase
         .from("lessons")
-        .select(`
-          id,
-          title,
-          description,
-          lessons_progress!inner (
-            progress,
-            completed
-          )
-        `)
+        .select("id, title, description")
         .order('created_at');
 
-      if (error) throw error;
-      return lessons as Lesson[];
+      if (lessonsError) throw lessonsError;
+
+      // Then get progress for the current user if they're logged in
+      if (userId) {
+        const { data: progress, error: progressError } = await supabase
+          .from("lessons_progress")
+          .select("lesson_id, progress, completed")
+          .eq("user_id", userId);
+
+        if (progressError) throw progressError;
+
+        // Merge the progress data with the lessons
+        return allLessons.map((lesson: Lesson) => {
+          const lessonProgress = progress?.find(p => p.lesson_id === lesson.id);
+          return {
+            ...lesson,
+            progress: lessonProgress?.progress || 0,
+            completed: lessonProgress?.completed || false
+          };
+        });
+      }
+
+      return allLessons.map((lesson: Lesson) => ({
+        ...lesson,
+        progress: 0,
+        completed: false
+      }));
     },
     enabled: !!userId
   });
