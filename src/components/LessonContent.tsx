@@ -31,46 +31,60 @@ export const LessonContent = ({ title, content, quiz, onComplete }: LessonConten
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
+        console.log("User authenticated:", session.user.id);
         setUserId(session.user.id);
+      } else {
+        console.log("No authenticated user found");
       }
     };
     checkUser();
   }, []);
 
   const checkAndAwardBadges = async () => {
-    if (!userId) return;
+    if (!userId) {
+      console.log("Cannot award badges: No user ID");
+      return;
+    }
 
     try {
-      // Get user's completed lessons count
+      console.log("Checking completed lessons for user:", userId);
       const { data: completedLessons, error: lessonsError } = await supabase
         .from('lessons_progress')
         .select('lesson_id')
         .eq('user_id', userId)
         .eq('completed', true);
 
-      if (lessonsError) throw lessonsError;
+      if (lessonsError) {
+        console.error("Error fetching completed lessons:", lessonsError);
+        throw lessonsError;
+      }
 
-      // Get total number of lessons
+      console.log("Completed lessons count:", completedLessons?.length);
+
       const { data: totalLessons, error: totalError } = await supabase
         .from('lessons')
         .select('id');
 
-      if (totalError) throw totalError;
+      if (totalError) {
+        console.error("Error fetching total lessons:", totalError);
+        throw totalError;
+      }
 
       const completedCount = completedLessons?.length || 0;
+      console.log("Total lessons count:", totalLessons?.length);
 
-      // Check for first lesson completion
       if (completedCount === 1) {
+        console.log("Attempting to award First Step badge");
         await awardBadge('First Step');
       }
 
-      // Check for three lessons completion
       if (completedCount === 3) {
+        console.log("Attempting to award Quick Learner badge");
         await awardBadge('Quick Learner');
       }
 
-      // Check for all lessons completion
       if (completedCount === totalLessons?.length) {
+        console.log("Attempting to award Investment Master badge");
         await awardBadge('Investment Master');
       }
     } catch (error) {
@@ -79,19 +93,25 @@ export const LessonContent = ({ title, content, quiz, onComplete }: LessonConten
   };
 
   const awardBadge = async (badgeName: string) => {
-    if (!userId) return;
+    if (!userId) {
+      console.log("Cannot award badge: No user ID");
+      return;
+    }
 
     try {
-      // Get badge ID
+      console.log("Looking up badge:", badgeName);
       const { data: badge, error: badgeError } = await supabase
         .from('badges')
         .select('id')
         .eq('name', badgeName)
         .single();
 
-      if (badgeError) throw badgeError;
+      if (badgeError) {
+        console.error("Error fetching badge:", badgeError);
+        throw badgeError;
+      }
 
-      // Check if user already has this badge
+      console.log("Checking if user already has badge:", badgeName);
       const { data: existingBadge, error: existingError } = await supabase
         .from('user_badges')
         .select('id')
@@ -100,9 +120,12 @@ export const LessonContent = ({ title, content, quiz, onComplete }: LessonConten
         .single();
 
       if (existingError && existingError.code !== 'PGRST116') throw existingError;
-      if (existingBadge) return; // User already has this badge
+      if (existingBadge) {
+        console.log("User already has badge:", badgeName);
+        return;
+      }
 
-      // Award new badge
+      console.log("Awarding new badge:", badgeName);
       const { error: awardError } = await supabase
         .from('user_badges')
         .insert({
@@ -110,7 +133,10 @@ export const LessonContent = ({ title, content, quiz, onComplete }: LessonConten
           badge_id: badge.id
         });
 
-      if (awardError) throw awardError;
+      if (awardError) {
+        console.error("Error awarding badge:", awardError);
+        throw awardError;
+      }
 
       toast.success(`Congratulations! You've earned the ${badgeName} badge!`);
     } catch (error) {
