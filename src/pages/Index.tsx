@@ -6,24 +6,56 @@ import { Forum } from "@/components/Forum";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Auth error:", error);
+          toast({
+            variant: "destructive",
+            title: "Authentication Error",
+            description: "Please sign in again",
+          });
+          navigate("/auth");
+          return;
+        }
+
+        setIsAuthenticated(!!session);
+      } catch (error) {
+        console.error("Session check error:", error);
+        setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
+      }
     };
+
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setIsAuthenticated(!!session);
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        setIsAuthenticated(false);
+        navigate("/auth");
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setIsAuthenticated(!!session);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   return (
     <main className="min-h-screen">
