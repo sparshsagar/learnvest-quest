@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from ".
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface CreatePostDialogProps {
   open: boolean;
@@ -18,10 +19,30 @@ export const CreatePostDialog = ({ open, onOpenChange }: CreatePostDialogProps) 
   const [content, setContent] = useState("");
   const [category, setCategory] = useState<"beginner" | "expert">("beginner");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        navigate("/auth");
+        return;
+      }
+      setUserId(session.user.id);
+    };
+    checkUser();
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!userId) {
+      toast.error("You must be logged in to create a post");
+      navigate("/auth");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -29,6 +50,7 @@ export const CreatePostDialog = ({ open, onOpenChange }: CreatePostDialogProps) 
         title,
         content,
         category,
+        user_id: userId
       });
 
       if (error) throw error;
