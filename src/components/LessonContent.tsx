@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
 import { toast } from "sonner";
 import { CheckCircle2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Quiz {
   id: number;
@@ -24,6 +25,98 @@ export const LessonContent = ({ title, content, quiz, onComplete }: LessonConten
   const [currentQuizIndex, setCurrentQuizIndex] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUserId(session.user.id);
+      }
+    };
+    checkUser();
+  }, []);
+
+  const checkAndAwardBadges = async () => {
+    if (!userId) return;
+
+    try {
+      // Get user's completed lessons count
+      const { data: completedLessons, error: lessonsError } = await supabase
+        .from('lessons_progress')
+        .select('lesson_id')
+        .eq('user_id', userId)
+        .eq('completed', true);
+
+      if (lessonsError) throw lessonsError;
+
+      // Get total number of lessons
+      const { data: totalLessons, error: totalError } = await supabase
+        .from('lessons')
+        .select('id');
+
+      if (totalError) throw totalError;
+
+      const completedCount = completedLessons?.length || 0;
+
+      // Check for first lesson completion
+      if (completedCount === 1) {
+        await awardBadge('First Step');
+      }
+
+      // Check for three lessons completion
+      if (completedCount === 3) {
+        await awardBadge('Quick Learner');
+      }
+
+      // Check for all lessons completion
+      if (completedCount === totalLessons?.length) {
+        await awardBadge('Investment Master');
+      }
+    } catch (error) {
+      console.error('Error checking badges:', error);
+    }
+  };
+
+  const awardBadge = async (badgeName: string) => {
+    if (!userId) return;
+
+    try {
+      // Get badge ID
+      const { data: badge, error: badgeError } = await supabase
+        .from('badges')
+        .select('id')
+        .eq('name', badgeName)
+        .single();
+
+      if (badgeError) throw badgeError;
+
+      // Check if user already has this badge
+      const { data: existingBadge, error: existingError } = await supabase
+        .from('user_badges')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('badge_id', badge.id)
+        .single();
+
+      if (existingError && existingError.code !== 'PGRST116') throw existingError;
+      if (existingBadge) return; // User already has this badge
+
+      // Award new badge
+      const { error: awardError } = await supabase
+        .from('user_badges')
+        .insert({
+          user_id: userId,
+          badge_id: badge.id
+        });
+
+      if (awardError) throw awardError;
+
+      toast.success(`Congratulations! You've earned the ${badgeName} badge!`);
+    } catch (error) {
+      console.error('Error awarding badge:', error);
+    }
+  };
 
   const handleSubmitAnswer = () => {
     if (selectedAnswer === null) {
@@ -38,6 +131,7 @@ export const LessonContent = ({ title, content, quiz, onComplete }: LessonConten
       if (currentQuizIndex === quiz.length - 1) {
         setQuizCompleted(true);
         onComplete();
+        checkAndAwardBadges();
         toast.success("Congratulations! You've completed the lesson!");
       } else {
         toast.success("Correct answer!");
