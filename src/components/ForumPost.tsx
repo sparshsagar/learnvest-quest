@@ -1,4 +1,4 @@
-import { MessageCircle, ThumbsUp } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "./ui/badge";
 import { Card } from "./ui/card";
@@ -12,7 +12,7 @@ interface ForumPostProps {
     created_at: string;
     profiles: {
       username: string | null;
-    };
+    } | null;
     comments: {
       count: number;
     }[];
@@ -32,7 +32,7 @@ export const ForumPost = ({ post }: ForumPostProps) => {
           </div>
           <p className="text-sm text-muted-foreground line-clamp-2">{post.content}</p>
           <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-            <span>Posted by {post.profiles.username || "Anonymous"}</span>
+            <span>Posted by {post.profiles?.username || "Anonymous"}</span>
             <span>{formatDistanceToNow(new Date(post.created_at))} ago</span>
             <div className="flex items-center space-x-1">
               <MessageCircle className="w-4 h-4" />

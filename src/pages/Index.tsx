@@ -20,10 +20,7 @@ const Index = () => {
         
         if (error) {
           console.error("Auth error:", error);
-          toast({
-            title: "Authentication Error",
-            description: "Please sign in again",
-          });
+          toast("Authentication Error: Please sign in again");
           navigate("/auth");
           return;
         }
