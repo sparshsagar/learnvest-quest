@@ -35,21 +35,27 @@ export type Database = {
       }
       lessons: {
         Row: {
+          content: string
           created_at: string
           description: string
           id: string
+          quiz: Json
           title: string
         }
         Insert: {
+          content?: string
           created_at?: string
           description: string
           id: string
+          quiz?: Json
           title: string
         }
         Update: {
+          content?: string
           created_at?: string
           description?: string
           id?: string
+          quiz?: Json
           title?: string
         }
         Relationships: []
